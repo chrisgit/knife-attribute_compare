@@ -32,13 +32,36 @@ gem install --local <path to gem>/knife_attribute.gem
 ## Usage
 
 The knife_attribute gem has the following functions
-* Sort attributes and open diff tool for comparison (TODO)
+* Sort attributes and open diff tool for comparison
 * Basic report of differences between environment files
 
 Parameters are
 | parameter        | short | description                                                  |
+|------------------|-------|--------------------------------------------------------------|
 | --report         |       | Show basic report                                            |
+| --diff_tool      |       | Convert to dot notation and call diff tool                   |
 
+When using --diff_tool (which is default behavior) it is easier to add a section into knife.rb
+e.g. Add the following to knife.rb (if you use WinMerge), note for Windows you need to quote paths if they include spaces
+````
+knife[:diff_tool] = '"C:/Program Files (x86)/WinMerge/WinMergeU.exe"'
+````
+
+Example calls
+- Using Diff Tool configured in knife.rb
+````
+knife attribute compare <environment1> <environment2>
+````
+
+- Using Diff Tool NOT configured in knife.rb
+````
+knife attribute compare <environment1> <environment2> --diff_tool="C:/Program Files (x86)/WinMerge/WinMergeU.exe"
+````
+
+- Using report
+````
+knife attribute compare <environment> <environment> --report
+````
 
 #### Ruby versions
 

@@ -16,6 +16,10 @@ class Chef
         :description => 'Show report',
         :boolean => true
 
+      option :diff_tool,
+        :long         => "--diff_tool EDITOR",
+        :description  => "Diff tool to use"
+        
       def run
         raise 'Please specify :diff_tool in knife config or use --report' unless @config[:report] || @config[:diff_tool] 
         raise 'Please enter two ENVIRONMENTS for knife attribute compare' if @name_args.count != 2
@@ -26,7 +30,7 @@ class Chef
         if @config[:report]
           comparison_report(environment1, environment2)
         else
-          # extract attributes for diff tool
+          comparison_diff(environment1, environment2)
         end
       end
 
@@ -39,15 +43,37 @@ class Chef
       def hash_to_dot_notation(object, prefix = nil)
         if (object.is_a?(Chef::Node) || object.is_a?(Hash)) && !(object.empty?)
           object.map do |key, value|
-          if prefix
-            hash_to_dot_notation value, "#{prefix}.#{key}"
-          else
-             hash_to_dot_notation value, key.to_s
-          end
-        end.reduce(&:merge) # .reduce(&:merge)
+            if prefix
+              hash_to_dot_notation value, "#{prefix}.#{key}"
+            else
+              hash_to_dot_notation value, key.to_s
+            end
+          end.reduce(&:merge) 
         else
-          {prefix => object}
+          { prefix => object }
         end
+      end
+
+      def environment_attributes_file(environment)
+        # attributes_only = { 'override': environment.override_attributes.sort, 'default': environment.default_attributes.sort }
+        attributes_only = { 
+          'override': hash_to_dot_notation(environment.override_attributes).sort, 
+          'default': hash_to_dot_notation(environment.default_attributes).sort }
+        filename = "knife-attribute-#{environment.name}"
+        tf = Tempfile.new([filename, '.json'])
+        tf.puts JSON.pretty_generate(attributes_only)
+        tf.close
+        tf
+      end
+
+      def comparison_diff(environment1, environment2)
+        environment1_attributes = environment_attributes_file(environment1)
+        environment2_attributes = environment_attributes_file(environment2)
+
+        raise "Please check the path to your diff tool" unless Kernel.system("#{config[:diff_tool]} #{environment1_attributes.path} #{environment2_attributes.path}")
+
+        environment1_attributes.unlink
+        environment2_attributes.unlink
       end
 
       def comparison_report(environment1, environment2)
