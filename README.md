@@ -75,8 +75,6 @@ knife attribute compare environment <environment> <environment> --report
 
 #### Future
 - Change set_paths to generate methods?
-- Embed loading mechanism in AttributeObject (or make simpler)
-- Reduce code, take common code paths and wrap into methods / classes
 
 #### Ruby versions
 
