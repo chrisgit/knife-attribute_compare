@@ -1,14 +1,15 @@
 require 'chef/knife'
+require_relative 'attribute_compare_core'
 
 class Chef
   class Knife
     # Compare attributes for Chef environments
-    class AttributeCompare < Knife
+    class AttributeCompareEnvironment < Knife
       deps do
         require 'chef/environment'
       end
 
-      banner 'knife attribute compare [ENVIRONMENT1] [ENVIRONMENT2] (options)'
+      banner 'knife attribute compare environment [ENVIRONMENT1] [ENVIRONMENT2] (options)'
 
       option :report,
         :long => '--report',
@@ -24,7 +25,7 @@ class Chef
           puts '--diff_tool not specified, using --report'
           config[:report] = true
         end
-        raise 'Please enter two ENVIRONMENTS for knife attribute compare' if @name_args.count != 2
+        raise 'Please enter two ENVIRONMENTS for knife attribute compare environment' if @name_args.count != 2
 
         environment1 = load_environment(@name_args[0])
         environment2 = load_environment(@name_args[1])
@@ -48,85 +49,7 @@ class Chef
   end
 end
 
-class Hash
-  def rsort!
-    keys.each do | k |
-      self[k] = self[k].rsort if self[k].is_a?(Hash)
-    end
-    sort.to_h
-  end
-end
-
 module ChrisGit
-  class AttributeObject
-
-    def initialize(chef_object)
-      @chef_object = chef_object
-      convert_attributes()
-    end
-
-    def name
-      @chef_object.name
-    end
-
-    def self.set_paths(*paths)
-      @paths ||= []
-      @paths += paths
-    end
-
-    class << self; attr_reader :paths end
-
-    def attributes_path
-      @attributes_path ||= begin
-        self.class.paths.each_with_object({}) do |path,hsh|
-          hsh.merge!(instance_variable_get("@#{path}"))
-        end
-      end
-    end
-
-    def attribute_variance(other)
-      return {} unless other.is_a?(AttributeObject)
-      (attributes_path.to_a - other.attributes_path.to_a).to_h
-    end
-
-    def [](key)
-      attributes_path[key]
-    end
-
-    def where(key)
-      key_found_in = nil
-      self.class.paths.reverse.each do |path|
-        value = instance_variable_get("@#{path}")[key]
-        unless value.nil?
-          key_found_in = path
-          break
-        end
-      end
-      key_found_in
-    end
-
-    private
-
-    def convert_attributes
-      self.class.paths.each do |path|
-        converted_attributes = hash_to_dot_notation(@chef_object.send(path))
-        instance_variable_set("@#{path}", converted_attributes)
-      end
-    end
-
-    def hash_to_dot_notation(object, prefix = nil)
-      if (object.is_a?(Chef::Node) || object.is_a?(Hash)) && !(object.empty?)
-        object.map do |key, value|
-          descend_key = prefix ? "#{prefix}.#{key}" : key.to_s
-          hash_to_dot_notation value, descend_key
-        end.reduce(&:merge)
-      else
-        { prefix => object }
-      end
-    end
-
-  end
-
   class ChefEnvironmentExt < AttributeObject
     set_paths :default_attributes, :override_attributes
   end

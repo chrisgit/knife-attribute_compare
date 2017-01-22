@@ -1,13 +1,20 @@
 Knife Attribute
 ===============
 
-Knife plugin to 
-* Compare attributes from one environment to another
+Knife plugin to compare attributes for
+* Chef Environments
+* Chef Nodes
+
+The out of the box knife environment compare plugin works well for Cookbook version constraints
 
 ## Requirements
 
 You will need 
-* Ruby installed or Chef or ChefDK
+* Ruby installed and Chef 
+
+or preferably 
+
+* ChefDK
 
 #### Building
 
@@ -33,7 +40,7 @@ gem install --local <path to gem>/knife_attribute.gem
 
 The knife_attribute gem has the following functions
 * Sort attributes and open diff tool for comparison
-* Basic report of differences between environment files
+* Basic report of differences between Chef Objects (node or environment)
 
 Parameters are:
 
@@ -53,22 +60,23 @@ knife[:diff_tool] = '"C:/Program Files (x86)/WinMerge/WinMergeU.exe"'
 Example calls
 - Using Diff Tool configured in knife.rb
 ````
-knife attribute compare <environment1> <environment2>
+knife attribute compare environment <environment1> <environment2>
 ````
 
 - Using Diff Tool NOT configured in knife.rb
 ````
-knife attribute compare <environment1> <environment2> --diff_tool="C:/Program Files (x86)/WinMerge/WinMergeU.exe"
+knife attribute compare environment <environment1> <environment2> --diff_tool="C:/Program Files (x86)/WinMerge/WinMergeU.exe"
 ````
 
 - Using report
 ````
-knife attribute compare <environment> <environment> --report
+knife attribute compare environment <environment> <environment> --report
 ````
 
 #### Future
 - Change set_paths to generate methods?
-- Node comparison
+- Embed loading mechanism in AttributeObject (or make simpler)
+- Reduce code, take common code paths and wrap into methods / classes
 
 #### Ruby versions
 
