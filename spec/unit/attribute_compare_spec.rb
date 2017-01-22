@@ -9,10 +9,11 @@ describe 'ChrisGit' do
           stub_const('Chef::Node', fake_node_class)
           environment = double()
           allow(environment).to receive(:default_attributes).and_return(PRODUCTION_DEFAULT_ATTRIBUTES)
+          allow(environment).to receive(:override_attributes).and_return({})
           env_one = ChrisGit::ChefEnvironmentExt.new(environment)
           env_two = ChrisGit::ChefEnvironmentExt.new(environment)
 
-          expect(env_one.attribute_variance(:default_attributes, env_two)).to eq({})
+          expect(env_one.attribute_variance(env_two)).to eq({})
         end
       end
       describe 'when hash keys of both objects match but values do not' do
@@ -20,15 +21,17 @@ describe 'ChrisGit' do
           stub_const('Chef::Node', fake_node_class)
           production = double()
           allow(production).to receive(:default_attributes).and_return(PRODUCTION_DEFAULT_ATTRIBUTES)
+          allow(production).to receive(:override_attributes).and_return({})
 
           production_other = double()
           allow(production_other).to receive(:default_attributes).and_return(PRODUCTION_DEFAULT_ATTRIBUTES_DIFFERENT_VALUES)
+          allow(production_other).to receive(:override_attributes).and_return({})
 
           env_one = ChrisGit::ChefEnvironmentExt.new(production)
           env_two = ChrisGit::ChefEnvironmentExt.new(production_other)
 
           variance = { 'chef-server.version' => '1.0.0', 'chef-server.configuration.nginx.port' => 4433 }
-          expect(env_one.attribute_variance(:default_attributes, env_two)).to eq(variance)
+          expect(env_one.attribute_variance(env_two)).to eq(variance)
         end
       end
 
@@ -38,15 +41,17 @@ describe 'ChrisGit' do
             stub_const('Chef::Node', fake_node_class)
             production = double()
             allow(production).to receive(:default_attributes).and_return(PRODUCTION_DEFAULT_ATTRIBUTES)
+            allow(production).to receive(:override_attributes).and_return({})
 
             production_other = double()
             allow(production_other).to receive(:default_attributes).and_return(PRODUCTION_DEFAULT_ATTRIBUTES_LESS_KEYS)
+            allow(production_other).to receive(:override_attributes).and_return({})
 
             env_one = ChrisGit::ChefEnvironmentExt.new(production)
             env_two = ChrisGit::ChefEnvironmentExt.new(production_other)
 
             variance = { 'chef-server.configuration.nginx.port' => 4433 }
-            expect(env_one.attribute_variance(:default_attributes, env_two)).to eq(variance)
+            expect(env_one.attribute_variance(env_two)).to eq(variance)
           end
         end
 
@@ -55,13 +60,16 @@ describe 'ChrisGit' do
             stub_const('Chef::Node', fake_node_class)
             production = double()
             allow(production).to receive(:default_attributes).and_return(PRODUCTION_DEFAULT_ATTRIBUTES_LESS_KEYS)
+            allow(production).to receive(:override_attributes).and_return({})
 
             production_other = double()
             allow(production_other).to receive(:default_attributes).and_return(PRODUCTION_DEFAULT_ATTRIBUTES)
+            allow(production_other).to receive(:override_attributes).and_return({})
+
             env_one = ChrisGit::ChefEnvironmentExt.new(production)
             env_two = ChrisGit::ChefEnvironmentExt.new(production_other)
 
-            expect(env_one.attribute_variance(:default_attributes, env_two)).to eq({})
+            expect(env_one.attribute_variance(env_two)).to eq({})
           end
         end
       end

@@ -58,41 +58,61 @@ class Hash
 end
 
 module ChrisGit
-  class ChefEnvironmentExt
-    def initialize(chef_environment)
-      @environment = chef_environment
+  class AttributeObject
+
+    def initialize(chef_object)
+      @chef_object = chef_object
+      convert_attributes()
     end
 
     def name
-      @environment.name
+      @chef_object.name
     end
 
-    def attribute_variance(attribute_type, other)
-      return nil unless other.is_a?(ChefEnvironmentExt)
-      method = "#{attribute_type}_path".to_sym
-      this_attr = send(method)
-      other_attr = other.send(method)
-      (this_attr.to_a - other_attr.to_a).to_h
+    def self.set_paths(*paths)
+      @paths ||= []
+      @paths += paths
     end
 
-    def value_for(attribute_type, key)
-      method = "#{attribute_type}_path".to_sym
-      send(method)[key]
-    end
+    class << self; attr_reader :paths end
 
-    def default_attributes_path
-      @default_attributes_path ||= begin
-        hash_to_dot_notation(@environment.default_attributes)
+    def attributes_path
+      @attributes_path ||= begin
+        self.class.paths.each_with_object({}) do |path,hsh|
+          hsh.merge!(instance_variable_get("@#{path}"))
+        end
       end
     end
 
-    def override_attributes_path
-      @override_attributes_path ||= begin
-        hash_to_dot_notation(@environment.override_attributes)
+    def attribute_variance(other)
+      return {} unless other.is_a?(AttributeObject)
+      (attributes_path.to_a - other.attributes_path.to_a).to_h
+    end
+
+    def [](key)
+      attributes_path[key]
+    end
+
+    def where(key)
+      key_found_in = nil
+      self.class.paths.reverse.each do |path|
+        value = instance_variable_get("@#{path}")[key]
+        unless value.nil?
+          key_found_in = path
+          break
+        end
       end
+      key_found_in
     end
 
     private
+
+    def convert_attributes
+      self.class.paths.each do |path|
+        converted_attributes = hash_to_dot_notation(@chef_object.send(path))
+        instance_variable_set("@#{path}", converted_attributes)
+      end
+    end
 
     def hash_to_dot_notation(object, prefix = nil)
       if (object.is_a?(Chef::Node) || object.is_a?(Hash)) && !(object.empty?)
@@ -107,6 +127,10 @@ module ChrisGit
 
   end
 
+  class ChefEnvironmentExt < AttributeObject
+    set_paths :default_attributes, :override_attributes
+  end
+
   class EnvironmentDiffReport
     def initialize(environment1,environment2)
       @environment1 = ChefEnvironmentExt.new(environment1)
@@ -114,8 +138,21 @@ module ChrisGit
     end
 
     def run()
-      report_attributes(:override_attributes)
-      report_attributes(:default_attributes)
+      # Work out key and value differences in environments
+      env1variances = @environment1.attribute_variance(@environment2)
+      env2variances = @environment2.attribute_variance(@environment1)
+
+      # Get the intersection of the keys
+      matched_keys = (env1variances.keys & env2variances.keys)
+      report_value_differences(matched_keys) unless matched_keys.empty?
+
+      # In environment1 but not in environment 2
+      in_env1_not_env2 = env1variances.keys.to_a - matched_keys
+      report_missing_keys(@environment1.name, @environment2.name, in_env1_not_env2) unless in_env1_not_env2.empty?
+
+      # In environment2 but not in environment 1
+      in_env2_not_env1 = env2variances.keys.to_a - matched_keys
+      report_missing_keys(@environment2.name, environment1.name, in_env2_not_env1) unless in_env2_not_env1.empty?
     end
 
     private
@@ -127,12 +164,12 @@ module ChrisGit
       puts '-' * 40
     end
 
-    def report_value_differences(attribute_type, comparison_keys)
+    def report_value_differences(comparison_keys)
       report_header 'Keys containing different values'
       comparison_keys.each do |k|
         puts "key:#{k}"
-        puts " - #{@environment1.name} value: #{@environment1.value_for(attribute_type, k)}"
-        puts " - #{@environment2.name} value: #{@environment2.value_for(attribute_type, k)}"
+        puts " - #{@environment1.name} value: #{@environment1[k]}"
+        puts " - #{@environment2.name} value: #{@environment2[k]}"
       end
     end
 
@@ -141,25 +178,6 @@ module ChrisGit
       missing_keys.each do |k|
         puts k
       end
-    end
-
-    def report_attributes(attribute_type)
-
-      # Work out key and value differences in environments
-      env1variances = @environment1.attribute_variance(attribute_type, @environment2)
-      env2variances = @environment2.attribute_variance(attribute_type, @environment1)
-
-      # Get the intersection of the keys
-      matched_keys = (env1variances.keys & env2variances.keys)
-      report_value_differences(attribute_type, matched_keys) unless matched_keys.empty?
-
-      # In environment1 but not in environment 2
-      in_env1_not_env2 = env1variances.keys.to_a - matched_keys
-      report_missing_keys(@environment1.name, @environment2.name, in_env1_not_env2) unless in_env1_not_env2.empty?
-
-      # In environment2 but not in environment 1
-      in_env2_not_env1 = env2variances.keys.to_a - matched_keys
-      report_missing_keys(@environment2.name, environment1.name, in_env2_not_env1) unless in_env2_not_env1.empty?
     end
   end
 

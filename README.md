@@ -67,7 +67,7 @@ knife attribute compare <environment> <environment> --report
 ````
 
 #### Future
-- For report: merge all attribute types together and run comparison?
+- Change set_paths to generate methods?
 - Node comparison
 
 #### Ruby versions
