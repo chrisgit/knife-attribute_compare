@@ -66,6 +66,10 @@ knife attribute compare <environment1> <environment2> --diff_tool="C:/Program Fi
 knife attribute compare <environment> <environment> --report
 ````
 
+#### Future
+- For report: merge all attribute types together and run comparison?
+- Node comparison
+
 #### Ruby versions
 
 Works with Ruby versions

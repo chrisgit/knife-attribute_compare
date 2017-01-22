@@ -69,10 +69,15 @@ module ChrisGit
 
     def attribute_variance(attribute_type, other)
       return nil unless other.is_a?(ChefEnvironmentExt)
-      method = "#{attribute_type.to_s}_path".to_sym
-      this_attr = self.send(method)
+      method = "#{attribute_type}_path".to_sym
+      this_attr = send(method)
       other_attr = other.send(method)
       (this_attr.to_a - other_attr.to_a).to_h
+    end
+
+    def value_for(attribute_type, key)
+      method = "#{attribute_type}_path".to_sym
+      send(method)[key]
     end
 
     def default_attributes_path
@@ -122,14 +127,12 @@ module ChrisGit
       puts '-' * 40
     end
 
-    def report_value_differences(comparison_keys,
-        environment1_name, environment1_attr,
-        environment2_name, environment2_attr)
+    def report_value_differences(attribute_type, comparison_keys)
       report_header 'Keys containing different values'
       comparison_keys.each do |k|
         puts "key:#{k}"
-        puts " - #{environment1_name} value: #{environment1_attr[k]}"
-        puts " - #{environment2_name} value: #{environment2_attr[k]}"
+        puts " - #{@environment1.name} value: #{@environment1.value_for(attribute_type, k)}"
+        puts " - #{@environment2.name} value: #{@environment2.value_for(attribute_type, k)}"
       end
     end
 
@@ -148,16 +151,13 @@ module ChrisGit
 
       # Get the intersection of the keys
       matched_keys = (env1variances.keys & env2variances.keys)
-
-      #report_value_differences(matched_keys) unless matched_keys.empty?
-      report_value_differences(matched_keys, 
-        @environment1.name, env1variances,
-        @environment2.name, env2variances) unless matched_keys.empty?
+      report_value_differences(attribute_type, matched_keys) unless matched_keys.empty?
 
       # In environment1 but not in environment 2
       in_env1_not_env2 = env1variances.keys.to_a - matched_keys
       report_missing_keys(@environment1.name, @environment2.name, in_env1_not_env2) unless in_env1_not_env2.empty?
 
+      # In environment2 but not in environment 1
       in_env2_not_env1 = env2variances.keys.to_a - matched_keys
       report_missing_keys(@environment2.name, environment1.name, in_env2_not_env1) unless in_env2_not_env1.empty?
     end
@@ -173,7 +173,7 @@ module ChrisGit
       environment1_attributes = environment_attributes_file(@environment1.rsort!)
       environment2_attributes = environment_attributes_file(@environment2.rsort!)
 
-      raise "Please check the path to your diff tool" unless Kernel.system("#{config[:diff_tool]} #{environment1_attributes.path} #{environment2_attributes.path}")
+      raise 'Please check the path to your diff tool' unless Kernel.system("#{config[:diff_tool]} #{environment1_attributes.path} #{environment2_attributes.path}")
 
       environment1_attributes.unlink
       environment2_attributes.unlink
@@ -185,14 +185,14 @@ module ChrisGit
       # attributes_only = { 'override': environment.override_attributes.sort, 'default': environment.default_attributes.sort }
       attributes_only =
         {
-          'override' => hash_to_dot_notation(environment.override_attributes).sort, 
-          'default' => hash_to_dot_notation(environment.default_attributes).sort 
+          'override' => hash_to_dot_notation(environment.override_attributes).sort,
+          'default' => hash_to_dot_notation(environment.default_attributes).sort
         }
-        filename = "knife-attribute-#{environment.name}"
-        tf = Tempfile.new([filename, '.json'])
-        tf.puts JSON.pretty_generate(attributes_only)
-        tf.close
-        tf
+      filename = "knife-attribute-#{environment.name}"
+      tf = Tempfile.new([filename, '.json'])
+      tf.puts JSON.pretty_generate(attributes_only)
+      tf.close
+      tf
     end
   end
 end

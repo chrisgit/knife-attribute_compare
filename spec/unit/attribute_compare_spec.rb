@@ -27,7 +27,7 @@ describe 'ChrisGit' do
           env_one = ChrisGit::ChefEnvironmentExt.new(production)
           env_two = ChrisGit::ChefEnvironmentExt.new(production_other)
 
-          variance = {"chef-server.version"=>"1.0.0", "chef-server.configuration.nginx.port"=>4433}
+          variance = { 'chef-server.version' => '1.0.0', 'chef-server.configuration.nginx.port' => 4433 }
           expect(env_one.attribute_variance(:default_attributes, env_two)).to eq(variance)
         end
       end
@@ -45,7 +45,7 @@ describe 'ChrisGit' do
             env_one = ChrisGit::ChefEnvironmentExt.new(production)
             env_two = ChrisGit::ChefEnvironmentExt.new(production_other)
 
-            variance = {"chef-server.configuration.nginx.port"=>4433}
+            variance = { 'chef-server.configuration.nginx.port' => 4433 }
             expect(env_one.attribute_variance(:default_attributes, env_two)).to eq(variance)
           end
         end
@@ -58,7 +58,6 @@ describe 'ChrisGit' do
 
             production_other = double()
             allow(production_other).to receive(:default_attributes).and_return(PRODUCTION_DEFAULT_ATTRIBUTES)
-
             env_one = ChrisGit::ChefEnvironmentExt.new(production)
             env_two = ChrisGit::ChefEnvironmentExt.new(production_other)
 
