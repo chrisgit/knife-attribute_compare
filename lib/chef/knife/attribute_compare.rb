@@ -20,7 +20,10 @@ class Chef
         :description => 'Diff tool to use'
 
       def run
-        raise 'Please specify :diff_tool in knife config or use --report' unless @config[:report] || @config[:diff_tool]
+        if @config[:diff_tool].nil?
+          puts '--diff_tool not specified, using --report'
+          config[:report] = true
+        end
         raise 'Please enter two ENVIRONMENTS for knife attribute compare' if @name_args.count != 2
 
         environment1 = load_environment(@name_args[0])
