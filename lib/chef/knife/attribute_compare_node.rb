@@ -21,35 +21,9 @@ class Chef
         :description => 'Diff tool to use'
 
       def run
-        if @config[:diff_tool].nil?
-          puts '--diff_tool not specified, using --report'
-          config[:report] = true
-        end
-        raise 'Please enter two NODES for knife attribute compare node' if @name_args.count != 2
-
-        node1 = ChefHelper.load_object(Chef::Node, @name_args[0])
-        node2 = ChefHelper.load_object(Chef::Node, @name_args[1])
-
-        device = comparison_device(node1, node2)
-        device.run
+        runner = ChrisGit::AttributeCompare.new(Chef::Node, @name_args[0], @name_args[1], config)
+        runner.run
       end
-
-      private
-
-      def comparison_device(node1, node2)
-        wrapped_node1 = ChrisGit::ChefNodeExt.new(node1)
-        wrapped_node2 = ChrisGit::ChefNodeExt.new(node2)
-        return ChrisGit::DiffReport.new(wrapped_node1, wrapped_node2) if @config[:report]
-        ChrisGit::DiffTool.new(config[:diff_tool], node1, node2)
-      end
-
     end
   end
-end
-
-module ChrisGit
-  class ChefNodeExt < AttributeObject
-    set_paths :default_attrs, :normal_attrs, :override_attrs, :automatic_attrs
-  end
-
 end

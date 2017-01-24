@@ -1,11 +1,12 @@
 Knife Attribute
 ===============
 
-Knife plugin to compare attributes for
-* Chef Environments
-* Chef Nodes
+Knife plugin to compare attributes for Chef
+* Environments
+* Nodes
+* Roles
 
-The out of the box knife environment compare plugin works well for Cookbook version constraints
+The out of the box knife environment compare plugin works well for Cookbook version constraints but not attribute differences.
 
 ## Requirements
 
@@ -40,7 +41,14 @@ gem install --local <path to gem>/knife_attribute.gem
 
 The knife_attribute gem has the following functions
 * Sort attributes and open diff tool for comparison
-* Basic report of differences between Chef Objects (node or environment)
+* Basic report of differences between Chef Objects (node, environment or roles)
+
+After installing the gem (or copying the files in lib to the plugin folder)
+````
+knife attribute compare environment ENVIRONMENT1 ENVIRONMENT2
+knife attribute compare node NODE1 NODE2
+knife attribute compare role ROLE1 ROLE2
+````
 
 Parameters are:
 
@@ -60,21 +68,21 @@ knife[:diff_tool] = '"C:/Program Files (x86)/WinMerge/WinMergeU.exe"'
 Example calls
 - Using Diff Tool configured in knife.rb
 ````
-knife attribute compare environment <environment1> <environment2>
+knife attribute compare environment testing-env staging-env
 ````
 
 - Using Diff Tool NOT configured in knife.rb
 ````
-knife attribute compare environment <environment1> <environment2> --diff_tool="C:/Program Files (x86)/WinMerge/WinMergeU.exe"
+knife attribute compare environment testing-env staging-env --diff_tool="C:/Program Files (x86)/WinMerge/WinMergeU.exe"
 ````
 
 - Using report
 ````
-knife attribute compare environment <environment> <environment> --report
+knife attribute compare environment testing-env staging-env --report
 ````
 
 #### Future
-- Change set_paths to generate methods?
+- None yet, happy with current functionality and code
 
 #### Ruby versions
 

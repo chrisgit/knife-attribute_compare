@@ -1,5 +1,52 @@
 # Namespace to avoid clashing
 module ChrisGit
+  class AttributeCompare
+    def initialize(klass, object1_name, object2_name, config)
+      @klass = klass
+      @object1_name = object1_name
+      @object2_name = object2_name
+      @config = config
+    end
+
+    def run()
+      validate_parameters()
+      object1 = wrap(load_object(@object1_name))
+      object2 = wrap(load_object(@object2_name))
+      device = comparison_device(object1, object2)
+      device.run
+    end
+
+    def validate_parameters()
+      if @config[:diff_tool].nil?
+        puts '--diff_tool not specified, using --report'
+        @config[:report] = true
+      end
+      object_to_compare = @klass.to_s.gsub('Chef::', '').downcase
+      raise format('Please enter two %ss for knife attribute compare %s', object_to_compare, object_to_compare) if @object1_name.nil? || @object2_name.nil?
+    end
+
+    private
+
+    def comparison_device(object1, object2)
+      return ChrisGit::DiffReport.new(object1, object2) if @config[:report]
+      ChrisGit::DiffTool.new(@config[:diff_tool], object1, object2)
+    end
+
+    def load_object(object_name)
+      @klass.load(object_name)
+      # Can throw
+      # rescue NoMethodError
+      #rescue Net::HTTPServerException => e
+    end
+
+    def wrap(chef_object)
+      return AttributeEnvironment.new(chef_object) if @klass == Chef::Environment
+      return AttributeNode.new(chef_object) if @klass == Chef::Node
+      return AttributeRole.new(chef_object) if @klass == Chef::Role
+      nil
+    end
+  end
+
   # Wrapper to Chef Objects
   class AttributeObject
     def initialize(chef_object)
@@ -70,6 +117,18 @@ module ChrisGit
         { prefix => object }
       end
     end
+  end
+
+  class AttributeEnvironment < AttributeObject
+    set_paths :default_attributes, :override_attributes
+  end
+
+  class AttributeNode < AttributeObject
+    set_paths :default_attrs, :normal_attrs, :override_attrs, :automatic_attrs
+  end
+
+  class AttributeRole < AttributeObject
+    set_paths :default_attributes, :override_attributes
   end
 
   class DiffReport
@@ -157,14 +216,5 @@ class ::Hash
       self[k] = self[k].rsort if self[k].is_a?(Hash)
     end
     sort.to_h
-  end
-end
-
-class ChefHelper
-  def self.load_object(klass, name)
-    klass.load(name)
-    # Can throw
-    # rescue NoMethodError
-    #rescue Net::HTTPServerException => e
   end
 end

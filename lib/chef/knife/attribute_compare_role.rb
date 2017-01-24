@@ -3,13 +3,13 @@ require_relative 'attribute_compare_core'
 
 class Chef
   class Knife
-    # Compare attributes for Chef environments
-    class AttributeCompareEnvironment < Knife
+    # Compare attributes for Chef Roles
+    class AttributeCompareRole < Knife
       deps do
-        require 'chef/environment'
+        require 'chef/node'
       end
 
-      banner 'knife attribute compare environment [ENVIRONMENT1] [ENVIRONMENT2] (options)'
+      banner 'knife attribute compare role [ROLE1] [ROLE2] (options)'
 
       option :report,
         :long => '--report',
@@ -21,7 +21,7 @@ class Chef
         :description => 'Diff tool to use'
 
       def run
-        runner = ChrisGit::AttributeCompare.new(Chef::Environment, @name_args[0], @name_args[1], config)
+        runner = ChrisGit::AttributeCompare.new(Chef::Role, @name_args[0], @name_args[1], config)
         runner.run
       end
     end
