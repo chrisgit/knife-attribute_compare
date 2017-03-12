@@ -1,17 +1,22 @@
 # -*- encoding: utf-8 -*-
-require File.expand_path('../lib/knife_attribute/version', __FILE__)
+lib = File.expand_path('../lib', __FILE__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+require 'knife_attribute/version'
 
-Gem::Specification.new do |gem|
-  gem.name          = 'knife_attribute'
-  gem.version       = Knife::Attribute::VERSION
-  gem.date          = '2016-12-11'
-  gem.summary       = 'A knife plugin for comparing environment attributes'
-  gem.description   = 'A knife plugin for comparing environment attributes'
-  gem.authors       = ['Chris Sullivan']
-  gem.email         = ['']
-  gem.homepage      = ''
+Gem::Specification.new do |spec|
+  spec.name          = 'knife_attribute'
+  spec.version       = Knife::Attribute::VERSION
+  spec.authors       = ['Chris Sullivan']
+  spec.email         = ['email-blocked']
+  spec.date          = '2016-12-11'
 
-  gem.files         = Dir['{lib}/**/*', 'README*', 'LICENSE*']
-  gem.require_paths = ['lib']
-  gem.license       = 'MIT'
+  spec.summary       = 'Compare Chef Node, Role and Environment Attributes'
+  spec.description   = 'A knife plugin for comparing attributes'
+  spec.homepage      = 'https://github.com/chrisgit/knife-attribute_compare'
+  spec.license       = 'MIT'
+
+  spec.files         = Dir['{lib}/**/*', 'README*', 'LICENSE*']
+  spec.require_paths = ['lib']
+
+  spec.add_development_dependency 'rspec', '~> 3.2'
 end
