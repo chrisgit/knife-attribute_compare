@@ -10,8 +10,8 @@ describe 'ChrisGit' do
           environment = double()
           allow(environment).to receive(:default_attributes).and_return(PRODUCTION_DEFAULT_ATTRIBUTES)
           allow(environment).to receive(:override_attributes).and_return({})
-          env_one = ChrisGit::ChefEnvironmentExt.new(environment)
-          env_two = ChrisGit::ChefEnvironmentExt.new(environment)
+          env_one = ChrisGit::EnvironmentAttributes.new(environment)
+          env_two = ChrisGit::EnvironmentAttributes.new(environment)
 
           expect(env_one.attribute_variance(env_two)).to eq({})
         end
@@ -27,8 +27,8 @@ describe 'ChrisGit' do
           allow(production_other).to receive(:default_attributes).and_return(PRODUCTION_DEFAULT_ATTRIBUTES_DIFFERENT_VALUES)
           allow(production_other).to receive(:override_attributes).and_return({})
 
-          env_one = ChrisGit::ChefEnvironmentExt.new(production)
-          env_two = ChrisGit::ChefEnvironmentExt.new(production_other)
+          env_one = ChrisGit::EnvironmentAttributes.new(production)
+          env_two = ChrisGit::EnvironmentAttributes.new(production_other)
 
           variance = { 'chef-server.version' => '1.0.0', 'chef-server.configuration.nginx.port' => 4433 }
           expect(env_one.attribute_variance(env_two)).to eq(variance)
@@ -47,8 +47,8 @@ describe 'ChrisGit' do
             allow(production_other).to receive(:default_attributes).and_return(PRODUCTION_DEFAULT_ATTRIBUTES_LESS_KEYS)
             allow(production_other).to receive(:override_attributes).and_return({})
 
-            env_one = ChrisGit::ChefEnvironmentExt.new(production)
-            env_two = ChrisGit::ChefEnvironmentExt.new(production_other)
+            env_one = ChrisGit::EnvironmentAttributes.new(production)
+            env_two = ChrisGit::EnvironmentAttributes.new(production_other)
 
             variance = { 'chef-server.configuration.nginx.port' => 4433 }
             expect(env_one.attribute_variance(env_two)).to eq(variance)
@@ -66,8 +66,8 @@ describe 'ChrisGit' do
             allow(production_other).to receive(:default_attributes).and_return(PRODUCTION_DEFAULT_ATTRIBUTES)
             allow(production_other).to receive(:override_attributes).and_return({})
 
-            env_one = ChrisGit::ChefEnvironmentExt.new(production)
-            env_two = ChrisGit::ChefEnvironmentExt.new(production_other)
+            env_one = ChrisGit::EnvironmentAttributes.new(production)
+            env_two = ChrisGit::EnvironmentAttributes.new(production_other)
 
             expect(env_one.attribute_variance(env_two)).to eq({})
           end

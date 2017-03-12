@@ -62,7 +62,7 @@ Parameters are:
 If diff_tool is always required then it is easier to add a section into knife.rb
 e.g. Add the following to knife.rb (if you use WinMerge), note for Windows you need to quote paths if they include spaces
 ````
-knife[:diff_tool] = '"C:/Program Files (x86)/WinMerge/WinMergeU.exe"'
+knife[:diff_tool] = 'C:\Program Files (x86)\WinMerge\WinMergeU.exe'
 ````
 
 Example calls

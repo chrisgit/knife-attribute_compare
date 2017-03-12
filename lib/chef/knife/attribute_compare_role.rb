@@ -21,7 +21,7 @@ class Chef
         :description => 'Diff tool to use'
 
       def run
-        runner = ChrisGit::AttributeCompare.new(Chef::Role, @name_args[0], @name_args[1], config)
+        runner = ChrisGit::AttributeCompare.new(Chef::Role, ui, @name_args[0], @name_args[1], config)
         runner.run
       end
     end

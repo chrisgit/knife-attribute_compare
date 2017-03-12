@@ -1,38 +1,54 @@
 # Namespace to avoid clashing
+# Bundle via Git http://guides.rubygems.org/publishing/
+# Build https://www.digitalocean.com/community/tutorials/how-to-package-and-distribute-ruby-applications-as-a-gem-using-rubygems
 module ChrisGit
   class AttributeCompare
-    def initialize(klass, object1_name, object2_name, config)
+    def initialize(klass, ui, object1_name, object2_name, config)
       @klass = klass
+      @ui = ui
       @object1_name = object1_name
       @object2_name = object2_name
-      @config = config
+      @report = config[:report]
+      @diff_tool = config[:diff_tool]
     end
 
     def run()
       validate_parameters()
       object1 = wrap(load_object(@object1_name))
       object2 = wrap(load_object(@object2_name))
-      device = comparison_device(object1, object2)
-      device.run
-    end
-
-    def validate_parameters()
-      if @config[:diff_tool].nil?
-        puts '--diff_tool not specified, using --report'
-        @config[:report] = true
-      end
-      object_to_compare = @klass.to_s.gsub('Chef::', '').downcase
-      raise format('Please enter two %ss for knife attribute compare %s', object_to_compare, object_to_compare) if @object1_name.nil? || @object2_name.nil?
+      compare(object1, object2)
     end
 
     private
 
-    def comparison_device(object1, object2)
-      return ChrisGit::DiffReport.new(object1, object2) if @config[:report]
-      ChrisGit::DiffTool.new(@config[:diff_tool], object1, object2)
+    def validate_parameters()
+      validate_diff_tool()
+      validate_compare_parameters()
+    end
+
+    def validate_diff_tool()
+      set_report('--diff_tool parameter not specified, using --report') if @diff_tool.nil?
+      @diff_tool = ChrisGit::PathHelper.sanitise_path(@diff_tool)
+      set_report("The diff tool #{@diff_tool} is not found, using --report") unless File.exist?(@diff_tool)
+    end
+
+    def validate_compare_parameters()
+      object_to_compare = @klass.to_s.gsub('Chef::', '').downcase
+      raise format('Please enter two %ss for knife attribute compare %s', object_to_compare, object_to_compare) if @object1_name.nil? || @object2_name.nil?
+    end
+
+    def set_report(message)
+      @ui.warn message
+      @report = true
+    end
+
+    def compare(object1, object2)
+      comparison_device = @report ? ChrisGit::DiffReport.new(object1, object2) : ChrisGit::DiffTool.new(@diff_tool, object1, object2)
+      comparison_device.run
     end
 
     def load_object(object_name)
+      @ui.info "loading #{object_name}"
       @klass.load(object_name)
       # Can throw
       # rescue NoMethodError
@@ -40,70 +56,55 @@ module ChrisGit
     end
 
     def wrap(chef_object)
-      return AttributeEnvironment.new(chef_object) if @klass == Chef::Environment
-      return AttributeNode.new(chef_object) if @klass == Chef::Node
-      return AttributeRole.new(chef_object) if @klass == Chef::Role
+      return EnvironmentAttributes.new(chef_object) if @klass == Chef::Environment
+      return NodeAttributes.new(chef_object) if @klass == Chef::Node
+      return RoleAttributes.new(chef_object) if @klass == Chef::Role
       nil
     end
   end
 
   # Wrapper to Chef Objects
   class AttributeObject
+    attr_reader :attributes
+
     def initialize(chef_object)
+      @attributes = {}
       @chef_object = chef_object
-      convert_attributes()
+      convert_attributes_to_dot_path()
     end
 
     def name
       @chef_object.name
     end
 
-    def self.set_paths(*paths)
-      @paths ||= []
-      @paths += paths
-    end
+    class << self
+      attr_reader :property_names
 
-    class << self; attr_reader :paths end
+      def attribute_properties(*property_names)
+        @property_names ||= []
+        @property_names += property_names
+      end
+    end
 
     def json_compare
       JSON.pretty_generate(@chef_object.to_hash.rsort)
     end
 
-    def attributes_path
-      @attributes_path ||= begin
-        self.class.paths.each_with_object({}) do |path,hsh|
-          hsh.merge!(instance_variable_get("@#{path}"))
-        end
-      end
-    end
-
     def attribute_variance(other)
       return {} unless other.is_a?(AttributeObject)
-      (attributes_path.to_a - other.attributes_path.to_a).to_h
+      (attributes.to_a - other.attributes.to_a).to_h
     end
 
     def [](key)
-      attributes_path[key]
-    end
-
-    def where(key)
-      key_found_in = nil
-      self.class.paths.reverse.each do |path|
-        value = instance_variable_get("@#{path}")[key]
-        unless value.nil?
-          key_found_in = path
-          break
-        end
-      end
-      key_found_in
+      attributes[key]
     end
 
     private
 
-    def convert_attributes
-      self.class.paths.each do |path|
-        converted_attributes = hash_to_dot_notation(@chef_object.send(path))
-        instance_variable_set("@#{path}", converted_attributes)
+    def convert_attributes_to_dot_path()
+      self.class.property_names.each do |property_name|
+        converted_attributes = hash_to_dot_notation(@chef_object.send(property_name))
+        @attributes.merge!(converted_attributes)
       end
     end
 
@@ -119,16 +120,16 @@ module ChrisGit
     end
   end
 
-  class AttributeEnvironment < AttributeObject
-    set_paths :default_attributes, :override_attributes
+  class EnvironmentAttributes < AttributeObject
+    attribute_properties :default_attributes, :override_attributes
   end
 
-  class AttributeNode < AttributeObject
-    set_paths :default_attrs, :normal_attrs, :override_attrs, :automatic_attrs
+  class NodeAttributes < AttributeObject
+    attribute_properties :default_attrs, :normal_attrs, :override_attrs, :automatic_attrs
   end
 
-  class AttributeRole < AttributeObject
-    set_paths :default_attributes, :override_attributes
+  class RoleAttributes < AttributeObject
+    attribute_properties :default_attributes, :override_attributes
   end
 
   class DiffReport
@@ -158,23 +159,20 @@ module ChrisGit
     private
 
     def report_header(report_title)
-      puts
-      puts '-' * 40
-      puts report_title
-      puts '-' * 40
+      puts format("\n%s\n%s\n%s\n", '-' * 40, report_title, '-' * 40)
     end
 
     def report_value_differences(comparison_keys)
       report_header 'Keys containing different values'
       comparison_keys.each do |k|
-        puts "key:#{k}"
-        puts " - #{@chef_object1.name} value: #{@chef_object1[k]}"
-        puts " - #{@chef_object2.name} value: #{@chef_object2[k]}"
+        puts format('key:%s', k)
+        puts format(' - %s value: %s', @chef_object1.name, @chef_object1[k])
+        puts format(' - %s value: %s', @chef_object2.name, @chef_object2[k])
       end
     end
 
     def report_missing_keys(primary_object, secondary_object, missing_keys)
-      report_header "Keys in #{primary_object} but not in #{secondary_object}"
+      report_header format('Keys in %s but not in %s', primary_object, secondary_object)
       missing_keys.each do |k|
         puts k
       end
@@ -192,7 +190,9 @@ module ChrisGit
       object1_file = create_diff_file(@chef_object1)
       object2_file = create_diff_file(@chef_object2)
 
-      raise 'Please check the path to your diff tool' unless Kernel.system("#{@diff_tool} #{object1_file.path} #{object2_file.path}")
+      # Change this to call a method ... easier to make Kernel.system or backticks
+      command = format('"%s" "%s" "%s"', @diff_tool, object1_file.path, object2_file.path)
+      raise 'Please check the path to your diff tool' unless run_command(command)
 
       object1_file.unlink
       object2_file.unlink
@@ -207,13 +207,17 @@ module ChrisGit
       tf.close
       tf
     end
+
+    def run_command(command)
+      `"#{command}"`
+    end
   end
 end
 
 class ::Hash
   def rsort()
-    keys.each do | k |
-      self[k] = self[k].rsort if self[k].is_a?(Hash)
+    keys.each do |key|
+      self[key] = self[key].rsort if self[key].is_a?(Hash)
     end
     sort.to_h
   end
