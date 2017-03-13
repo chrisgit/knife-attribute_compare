@@ -190,7 +190,6 @@ module ChrisGit
       object1_file = create_diff_file(@chef_object1)
       object2_file = create_diff_file(@chef_object2)
 
-      # Change this to call a method ... easier to make Kernel.system or backticks
       command = format('"%s" "%s" "%s"', @diff_tool, object1_file.path, object2_file.path)
       raise 'Please check the path to your diff tool' unless run_command(command)
 
@@ -209,7 +208,7 @@ module ChrisGit
     end
 
     def run_command(command)
-      `"#{command}"`
+      `#{command}` # Kernel.system(command)
     end
   end
 end

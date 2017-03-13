@@ -3,7 +3,7 @@ module ChrisGit
     def self.sanitise_path(path)
       return '' if path.nil?
       path.strip!
-      path = path.remove_double_quotes(path)
+      path = remove_double_quotes(path)
       path.gsub(/\\+/, '/')
     end
 
